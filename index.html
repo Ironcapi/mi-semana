@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi Semana en Pesos</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Semana">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0f2a4a">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: one mobile-first column; weekly saldo hero, capture form, category meters, fuel gauge, upcoming payments, card balances, week list, debts, monthly budget, settings. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --ink: #0f1c2e; --ink-2: #4c5a6e; --muted: #8592a5; --line: #e2e7ee;
+  --accent: #14805a; --accent-soft: #e2f4ec; --warn: #b7791f; --warn-soft: #fdf3e0; --bad: #c0392b; --bad-soft: #fbe7e5;
+  --bbva: #d9592a; --rev: #2a6fd6; --deb: #6b7685; --hero: #0f2a4a; --hero-ink: #ffffff; --hero-2: #a9c2e3;
+  --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif; --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c131d; --surface: #141e2b; --ink: #e9eef5; --ink-2: #aab6c6; --muted: #7a889b; --line: #253244;
+  --accent: #3cc48e; --accent-soft: #123528; --warn: #e3a64a; --warn-soft: #3a2c12; --bad: #ef7a6d; --bad-soft: #3d1a17;
+  --bbva: #ee7a4c; --rev: #5b97ef; --deb: #95a1b1; --hero: #16304f; --hero-ink: #ffffff; --hero-2: #9fb8da; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0c131d; --surface: #141e2b; --ink: #e9eef5; --ink-2: #aab6c6; --muted: #7a889b; --line: #253244;
+  --accent: #3cc48e; --accent-soft: #123528; --warn: #e3a64a; --warn-soft: #3a2c12; --bad: #ef7a6d; --bad-soft: #3d1a17;
+  --bbva: #ee7a4c; --rev: #5b97ef; --deb: #95a1b1; --hero: #16304f; --hero-ink: #ffffff; --hero-2: #9fb8da; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 48px; display: flex; flex-direction: column; gap: 14px; }
+.num { font-variant-numeric: tabular-nums; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 0; letter-spacing: -0.01em; }
+.label { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--rev); outline-offset: 2px; }
+
+.week { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.week .t { font-family: var(--display); font-weight: 600; font-size: 16px; text-align: center; }
+.week .t small { display: block; font-family: var(--body); font-weight: 500; font-size: 12px; color: var(--muted); }
+.nav { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 18px; line-height: 1; }
+.nav:disabled { opacity: .35; cursor: default; }
+
+.hero { background: var(--hero); color: var(--hero-ink); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.hero .label { color: var(--hero-2); }
+.big { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 12vw, 56px); line-height: 1; letter-spacing: -0.03em; }
+.big.over { color: #ffb4a9; }
+.hero .sub { color: var(--hero-2); font-size: 14px; }
+.hero .sub b { color: var(--hero-ink); }
+.bar { height: 10px; border-radius: 6px; background: rgba(255,255,255,.18); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 6px; background: #7ee2b5; transition: width .3s; }
+.bar > i.warn { background: #f6c66a; } .bar > i.over { background: #ff8f80; }
+.daily { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-s { background: rgba(255,255,255,.12); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; }
+
+form { display: flex; flex-direction: column; gap: 12px; }
+.amount { display: flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); border-radius: 14px; padding: 6px 14px; background: var(--bg); }
+.amount span { font-family: var(--display); font-size: 28px; color: var(--muted); }
+.amount input { border: 0; background: transparent; font-family: var(--display); font-weight: 800; font-size: 32px; width: 100%; min-width: 0; color: var(--ink); padding: 4px 0; }
+.amount input:focus { outline: none; }
+.amount input::-webkit-outer-spin-button, .amount input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } .amount input { -moz-appearance: textfield; } .amount:focus-within { border-color: var(--rev); }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choices input { position: absolute; opacity: 0; pointer-events: none; }
+.choices label { border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 13px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: var(--surface); }
+.choices input:checked + label { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.choices input:focus-visible + label { outline: 2px solid var(--rev); outline-offset: 2px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.row2 { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field input, .field select { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; background: var(--bg); color: var(--ink); width: 100%; min-width: 0; }
+.hint { font-size: 13px; color: var(--ink-2); background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; }
+.hint b { color: var(--accent); }
+.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 13px; font-weight: 700; font-size: 16px; }
+.primary:disabled { opacity: .5; cursor: default; }
+.msg { font-size: 13px; color: var(--ink-2); min-height: 1em; }
+
+.cats { display: flex; flex-direction: column; gap: 12px; }
+.cat .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cat .name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cat .vals { font-size: 13.5px; color: var(--ink-2); }
+.cat .vals b { color: var(--ink); }
+.meter { height: 8px; border-radius: 5px; background: var(--line); overflow: hidden; margin-top: 6px; }
+.meter i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+.meter i.warn { background: var(--warn); } .meter i.over { background: var(--bad); }
+.state { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.state.ok { background: var(--accent-soft); color: var(--accent); }
+.state.warn { background: var(--warn-soft); color: var(--warn); }
+.state.over { background: var(--bad-soft); color: var(--bad); }
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card .cn { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.card .amt { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; }
+.card .small { font-size: 12.5px; color: var(--ink-2); }
+.card .pay { font-size: 12.5px; border-top: 1px dashed var(--line); padding-top: 6px; color: var(--ink-2); }
+.card .pay b { color: var(--ink); }
+
+.list { display: flex; flex-direction: column; }
+.item { display: grid; grid-template-columns: 44px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.item:first-child { border-top: 0; }
+.item .d { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.2; }
+.item .d b { display: block; font-size: 16px; color: var(--ink); font-family: var(--display); }
+.item .what { min-width: 0; }
+.item .what div:first-child { font-weight: 600; overflow-wrap: anywhere; }
+.item .what div:last-child { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.item .m { font-weight: 700; }
+.del { border: 0; background: transparent; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; font-size: 18px; }
+.del:hover { background: var(--bad-soft); color: var(--bad); }
+.del.confirm { width: auto; padding: 0 10px; background: var(--bad); color: #fff; font-size: 13px; font-weight: 700; }
+.empty { color: var(--ink-2); font-size: 14px; padding: 6px 0; }
+.banner { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+
+.ph { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pago { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pago:first-child { border-top: 0; }
+.pago .when { text-align: center; line-height: 1.15; font-size: 12px; color: var(--muted); }
+.pago .when b { display: block; font-family: var(--display); font-size: 18px; color: var(--ink); }
+.pago .c { min-width: 0; }
+.pago .c div:first-child { font-weight: 600; overflow-wrap: anywhere; }
+.pago .c div:last-child { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pago .r { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pago .r b { font-size: 15px; }
+.pago.done { opacity: .55; } .pago.done .c div:first-child { text-decoration: line-through; }
+.pago.late .when b { color: var(--bad); }
+.tag { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--line); color: var(--ink-2); }
+.tag.late { background: var(--bad-soft); color: var(--bad); } .tag.soon { background: var(--warn-soft); color: var(--warn); }
+.mark { border: 1.5px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 700; }
+.mark.undo { border-color: var(--line); color: var(--muted); }
+.meter.tall { height: 10px; position: relative; overflow: visible; }
+.meter.tall i { border-radius: 5px; }
+.meter .tope { position: absolute; top: -3px; width: 3px; height: 16px; border-radius: 2px; background: #e8b931; }
+.card .lines { font-size: 12.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 2px; }
+.card .lines b { color: var(--ink); }
+.split { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; }
+.split i { display: block; height: 100%; }
+.budget { display: flex; flex-direction: column; }
+.bl { display: grid; grid-template-columns: 1fr auto 46px; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: center; }
+.bl:first-child { border-top: 0; }
+.bl .k { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bl .p { color: var(--muted); font-size: 12.5px; text-align: right; }
+.bl.in { font-weight: 700; } .bl.sav { font-weight: 700; color: var(--accent); }
+.tank { display: grid; grid-template-columns: minmax(150px, 200px) 1fr; gap: 14px; align-items: center; }
+.tank svg { width: 100%; height: auto; display: block; }
+.tinfo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tl { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; }
+.fuel { display: flex; flex-wrap: wrap; gap: 6px; }
+.fuel button { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 6px 0; width: 44px; font-weight: 700; font-size: 13px; }
+.fuel button:hover { border-color: var(--ink); }
+.g-track { stroke: var(--line); } .g-text { fill: var(--muted); font: 600 11px var(--body); } .g-needle { stroke: var(--ink); } .g-hub { fill: var(--ink); }
+@media (max-width: 420px) { .tank { grid-template-columns: 1fr; } .tank svg { max-width: 220px; margin: 0 auto; } }
+.mover { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mv { display: flex; gap: 8px; align-items: center; }
+.mv select, .mv input { flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 8px; font: inherit; background: var(--bg); color: var(--ink); }
+.mv .mark { padding: 8px 16px; }
+.mvi { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.lock { font-size: 13px; color: var(--ink-2); background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
+.lock b { color: var(--ink); }
+.abono { border-top: 1px solid var(--line); padding-top: 12px; }
+.abono summary { font-size: 15px; }
+.abono form { margin-top: 10px; }
+details summary { cursor: pointer; font-family: var(--display); font-weight: 600; font-size: 16px; list-style: none; display: flex; justify-content: space-between; }
+details summary::after { content: "+"; color: var(--muted); }
+details[open] summary::after { content: "–"; }
+.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.note { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 380px) { .cards, .settings { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="week">
+    <button class="nav" id="prev" type="button" aria-label="Semana anterior">‹</button>
+    <div class="t" id="weekTitle">Esta semana<small>&nbsp;</small></div>
+    <button class="nav" id="next" type="button" aria-label="Semana siguiente">›</button>
+  </div>
+
+  <section class="hero" aria-live="polite">
+    <div class="label" id="heroLabel">Te queda esta semana</div>
+    <div class="big num" id="left">$0</div>
+    <div class="sub" id="heroSub">de <b>$0</b> · gastado $0</div>
+    <div class="bar"><i id="heroBar" style="width:0%"></i></div>
+    <div class="daily" id="daily"></div>
+  </section>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="panel">
+    <h2>Registrar gasto</h2>
+    <form id="form" autocomplete="off">
+      <label class="amount" for="monto"><span>$</span><input id="monto" name="monto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" required></label>
+      <div class="field"><span class="label">Categoría</span><div class="choices" id="catChoices"></div></div>
+      <div class="field"><span class="label">Cómo pagaste</span><div class="choices" id="metChoices"></div></div>
+      <div class="hint" id="hint" hidden></div>
+      <div class="field" id="litrosField" hidden><label class="label" for="litros">Litros que cargaste (opcional)</label><input id="litros" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ej. 18.5"></div>
+      <div class="row2">
+        <div class="field"><label class="label" for="fecha">Fecha</label><input id="fecha" type="date" required></div>
+        <div class="field"><label class="label" for="nota">Nota (opcional)</label><input id="nota" type="text" maxlength="60" placeholder="Ej. Pemex, tacos, súper"></div>
+      </div>
+      <button class="primary" id="add" type="submit">Agregar gasto</button>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Por categoría</h2>
+    <div class="cats" id="cats"></div>
+    <div class="mover" id="mover">
+      <span class="label">Mover saldo entre presupuestos</span>
+      <div class="mv">
+        <label class="sr" for="mvDe">De</label><select id="mvDe"></select>
+        <span aria-hidden="true">→</span>
+        <label class="sr" for="mvA">A</label><select id="mvA"></select>
+      </div>
+      <div class="mv">
+        <label class="sr" for="mvMonto">Monto</label><input id="mvMonto" type="number" inputmode="decimal" min="0" step="any" placeholder="Monto">
+        <button id="mvBtn" type="button" class="mark">Mover</button>
+      </div>
+      <div class="msg" id="mvMsg" role="status"></div>
+      <div id="mvList"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tankPanel">
+    <div class="ph"><h2>Tanque de gasolina</h2><span class="state" id="tankState"></span></div>
+    <div class="tank">
+      <svg id="gauge" viewBox="0 0 200 116" role="img" aria-label="Nivel estimado del tanque"></svg>
+      <div class="tinfo">
+        <div class="tl" id="tankLiters">Sin lectura</div>
+        <div class="note" id="tankDays">Dinos cuánto marca tu tablero para empezar.</div>
+        <div class="hint" id="tankTip" hidden></div>
+      </div>
+    </div>
+    <div class="field"><span class="label">Mi tablero marca ahora</span><div class="fuel" id="fuelChips"></div></div>
+    <div class="note">Es un cálculo: suma los litros de cada carga y resta tu consumo promedio por día. Cuando veas tu tablero, toca lo que marca para corregirlo.</div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><h2>Próximos pagos</h2><span class="note" id="nextTotal"></span></div>
+    <div class="list" id="pagos"><div class="empty">Cargando tu plan de pagos…</div></div>
+    <details class="abono" id="abonoBox">
+      <summary>Abono extra</summary>
+      <p class="note">Para cuando pagas de más o abonas efectivo que te dieron. Se resta de la deuda o tarjeta y ajusta los pagos que siguen.</p>
+      <form id="abonoForm" autocomplete="off">
+        <div class="row2">
+          <div class="field"><label class="label" for="abMonto">Monto</label><input id="abMonto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" required></div>
+          <div class="field"><label class="label" for="abDeuda">A qué</label><select id="abDeuda"></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label class="label" for="abFecha">Fecha</label><input id="abFecha" type="date" required></div>
+          <div class="field"><label class="label" for="abNota">Nota (opcional)</label><input id="abNota" type="text" maxlength="60" placeholder="Ej. efectivo de mi hermano"></div>
+        </div>
+        <button class="primary" id="abAdd" type="submit">Registrar abono</button>
+        <div class="msg" id="abMsg" role="status"></div>
+      </form>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>Tarjetas: cuánto debes hoy</h2>
+    <div class="cards" id="cards"></div>
+    <div class="note">Suma la deuda vieja que falta pagar, tus compras registradas con cada tarjeta y los cargos automáticos configurados en tu plan. La raya amarilla marca el tope sano.</div>
+  </section>
+
+  <section class="panel">
+    <h2 id="listTitle">Gastos de la semana</h2>
+    <div class="list" id="list"><div class="empty">Cargando tus gastos…</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><h2>Mis deudas</h2><span class="note num" id="debtTotal"></span></div>
+    <div class="cats" id="deudas"><div class="empty">Cargando tus deudas…</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Presupuesto mensual</h2>
+    <div class="split" id="split"></div>
+    <div class="budget" id="budget"></div>
+    <div class="note" id="budgetNote"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Respaldo</h2>
+    <p class="note">Tus datos se guardan solo en este navegador. Descarga un respaldo de vez en cuando y guárdalo en Archivos o iCloud.</p>
+    <button class="primary" id="bkExport" type="button">Descargar respaldo</button>
+    <div class="field"><label class="label" for="bkFile">Restaurar desde un respaldo</label><input id="bkFile" type="file" accept="application/json,.json"></div>
+    <button class="mark" id="bkImport" type="button" hidden>Reemplazar mis datos con este respaldo</button>
+    <div class="msg" id="bkMsg" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>Ajustar presupuesto</summary>
+      <div class="lock" id="lockInfo"></div>
+      <div class="settings" id="settings"></div>
+      <p class="note">Solo registra aquí lo del día a día (gasolina, comida, salidas, gustos). Los pagos fijos (coche, mamá, luz, internet, pagos de tarjeta) ya están en tu plan.</p>
+      <button class="primary" id="saveCfg" type="button">Guardar presupuesto</button>
+      <div class="msg" id="cfgMsg" role="status"></div>
+    </details>
+  </section>
+</div>
+
+<script>
+(() => {
+  const CATS = [
+    { id: "gasolina", name: "Gasolina", color: "var(--rev)" },
+    { id: "comida", name: "Comida y salidas", color: "var(--accent)" },
+    { id: "otros", name: "Otros / gustos", color: "var(--warn)" },
+    { id: "encargo", name: "Encargo (no es mío)", color: "#8a6fd1", fuera: true },
+  ];
+  const METS = [
+    { id: "bbva", name: "BBVA", color: "var(--bbva)" },
+    { id: "revolut", name: "Revolut", color: "var(--rev)" },
+    { id: "debito", name: "Débito", color: "var(--deb)" },
+    { id: "efectivo", name: "Efectivo", color: "var(--deb)" },
+  ];
+  const DEFAULT_CFG = {
+    semanal: { gasolina: 0, comida: 0, otros: 0 },
+    tarjetas: {
+      bbva: { limite: 0, corte: 15, pago: 5, fijos: [] },
+      revolut: { limite: 0, corte: 15, pago: 5, fijos: [] },
+    },
+    tope: 0.30,
+    inicioJineteo: "2099-01-01",
+    inicioGas: "",
+    tanque: { capacidad: 40, precio: 24, kmL: 12, kmTrabajo: 0, diasTrabajo: 5, kmExtraSemana: 0, consumoDia: 0 },
+    desde: "2000-01-01",
+    topes: [],
+    historial: {},
+    topeSanoMax: 0.30,
+    mensual: [],
+    notaMensual: "",
+  };
+  let cfg = structuredClone(DEFAULT_CFG);
+  let gastos = [];       // {id, monto, categoria, metodo, fecha, nota, creado}
+  let loaded = false;
+  let deudas = [];       // {id, nombre, saldoInicial, orden, tarjeta?}
+  let pagos = [];        // {id, fecha, concepto, deuda?, tarjeta?, monto, pagado, pagadoEl?, auto?}
+  let planLoaded = false;
+  let movs = [];         // {id, semana, de, a, monto, creado}: budget moved between categories
+  let lectura = null;    // {litros, ts}: last dashboard reading
+  let weekOffset = 0;
+  let db = null;
+  let pendingDelete = null;
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => (n < 0 ? "−" : "") + "$" + Math.abs(n).toLocaleString("es-MX", { maximumFractionDigits: 0 });
+  const fmt2 = (n) => "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const DIA = ["dom","lun","mar","mié","jue","vie","sáb"];
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const parse = (s) => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+  const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const monday = (d) => addDays(d, -((d.getDay() + 6) % 7));
+  const short = (d) => `${d.getDate()} ${MES[d.getMonth()]}`;
+  const clampDay = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+
+  // ---------- Weekly view ----------
+  function weekRange() {
+    const start = addDays(monday(today()), weekOffset * 7);
+    return { start, end: addDays(start, 6) };
+  }
+  function inRange(g, a, b) { const d = parse(g.fecha); return d >= a && d <= b; }
+  const BCATS = CATS.filter((c) => !c.fuera);
+  const isMine = (g) => !(CATS.find((c) => c.id === g.categoria) || {}).fuera;
+  // Every budget rolls over week to week: what you didn't spend (or overspent) moves to the next week, per category.
+  // Budget changes apply from the week they were made, never backwards.
+  function histFor(cat) {
+    if (cfg.historial && Array.isArray(cfg.historial[cat])) return cfg.historial[cat];
+    if (cat === "gasolina" && Array.isArray(cfg.historialGas)) return cfg.historialGas;
+    return [];
+  }
+  function budgetFor(cat, w) {
+    const hist = [...histFor(cat)].sort((a, b) => a.desde.localeCompare(b.desde));
+    if (!hist.length) return +cfg.semanal[cat] || 0;
+    let v = +hist[0].monto;
+    for (const h of hist) if (h.desde <= iso(w)) v = +h.monto;
+    return v;
+  }
+  function topeFor(w) {
+    const t = [...(cfg.topes || DEFAULT_CFG.topes)].sort((a, b) => a.desde.localeCompare(b.desde));
+    let v = t.length ? +t[0].total : Infinity;
+    for (const x of t) if (x.desde <= iso(w)) v = +x.total;
+    return v;
+  }
+  function adjFor(cat, w) {
+    const k = iso(w);
+    return movs.filter((m) => m.semana === k).reduce((x, m) => x + (m.a === cat ? m.monto : 0) - (m.de === cat ? m.monto : 0), 0);
+  }
+  function availFor(cat, w) {
+    const e = addDays(w, 6);
+    const spent = gastos.filter((g) => g.categoria === cat && inRange(g, w, e)).reduce((x, g) => x + g.monto, 0);
+    return budgetFor(cat, w) + carryFor(cat, w) + adjFor(cat, w) - spent;
+  }
+  function carryFor(cat, ws) {
+    let carry = 0;
+    let w = monday(parse(cfg.inicioGas || iso(monday(today()))));
+    for (let i = 0; w < ws && i < 520; i++) {
+      const e = addDays(w, 6);
+      carry += budgetFor(cat, w) + adjFor(cat, w) - gastos.filter((g) => g.categoria === cat && inRange(g, w, e)).reduce((x, g) => x + g.monto, 0);
+      w = addDays(w, 7);
+    }
+    return Math.round(carry * 100) / 100;
+  }
+  function totalBudget() { return BCATS.reduce((s, c) => s + (+cfg.semanal[c.id] || 0), 0); }
+
+  function render() {
+    const { start, end } = weekRange();
+    const t = today();
+    const isCurrent = weekOffset === 0;
+    $("weekTitle").innerHTML = "";
+    const tt = document.createElement("span");
+    tt.textContent = isCurrent ? "Esta semana" : (weekOffset === -1 ? "Semana pasada" : (weekOffset < 0 ? `Hace ${-weekOffset} semanas` : "Próxima semana"));
+    const sm = document.createElement("small"); sm.textContent = `lun ${short(start)} – dom ${short(end)}`;
+    $("weekTitle").append(tt, sm);
+    $("next").disabled = weekOffset >= 0;
+
+    const wkAll = gastos.filter((g) => inRange(g, start, end));
+    const wk = wkAll.filter(isMine);
+    const spent = wk.reduce((s, g) => s + g.monto, 0);
+    const per = {};
+    for (const c of BCATS) per[c.id] = { base: budgetFor(c.id, start), carry: carryFor(c.id, start), adj: adjFor(c.id, start) };
+    const carryTot = BCATS.reduce((x, c) => x + per[c.id].carry, 0);
+    const budget = BCATS.reduce((x, c) => x + per[c.id].base + per[c.id].carry + per[c.id].adj, 0);
+    const left = budget - spent;
+    $("heroLabel").textContent = left < 0 ? (isCurrent ? "Te pasaste esta semana por" : "Te pasaste esa semana por") : (isCurrent ? "Te queda esta semana" : "Te sobró esa semana");
+    $("left").textContent = fmt(Math.abs(left));
+    $("left").classList.toggle("over", left < 0);
+    $("heroSub").innerHTML = "";
+    $("heroSub").append("de ", Object.assign(document.createElement("b"), { textContent: fmt(budget) }), ` · gastado ${fmt(spent)}`);
+    const pct = budget > 0 ? Math.min(100, spent / budget * 100) : (spent > 0 ? 100 : 0);
+    const bar = $("heroBar"); bar.style.width = pct + "%";
+    bar.className = spent > budget ? "over" : (pct >= 80 ? "warn" : "");
+
+    const daily = $("daily"); daily.innerHTML = "";
+    if (isCurrent) {
+      const daysLeft = Math.round((end - t) / 864e5) + 1;
+      const c1 = document.createElement("span"); c1.className = "chip-s num";
+      c1.textContent = `${daysLeft} ${daysLeft === 1 ? "día" : "días"} restantes`;
+      daily.append(c1);
+      if (left > 0) {
+        const c2 = document.createElement("span"); c2.className = "chip-s num";
+        c2.textContent = `≈ ${fmt(left / daysLeft)} por día`;
+        daily.append(c2);
+      }
+    }
+    if (Math.abs(carryTot) >= 1) {
+      const c3 = document.createElement("span"); c3.className = "chip-s num";
+      c3.textContent = carryTot > 0 ? `Incluye ${fmt(carryTot)} que te sobró antes` : `Ya trae −${fmt(-carryTot)} de semanas pasadas`;
+      daily.append(c3);
+    }
+
+    // categories
+    const cats = $("cats"); cats.innerHTML = "";
+    for (const c of BCATS) {
+      const { base, carry, adj } = per[c.id];
+      const b = base + carry + adj;
+      const s = wk.filter((g) => g.categoria === c.id).reduce((a, g) => a + g.monto, 0);
+      if (base === 0 && carry === 0 && adj === 0 && s === 0 && c.id === "otros") continue;
+      const p = b > 0 ? s / b : (s > 0 ? 2 : 0);
+      const st = p > 1 ? "over" : (p >= 0.8 ? "warn" : "ok");
+      const el = document.createElement("div"); el.className = "cat";
+      el.innerHTML = `<div class="top"><div class="name"><span class="dot" style="background:${c.color}"></span><span></span></div><span class="state ${st}"></span></div>
+        <div class="vals num"></div><div class="meter"><i class="${st === "ok" ? "" : st}" style="width:${Math.min(100, p * 100)}%"></i></div>`;
+      el.querySelector(".name span:last-child").textContent = c.name;
+      el.querySelector(".state").textContent = st === "over" ? `${fmt(s - b)} se restan a la otra semana` : `Quedan ${fmt(b - s)}`;
+      const v = el.querySelector(".vals");
+      v.append(Object.assign(document.createElement("b"), { textContent: fmt(s) }), ` de ${fmt(b)}`);
+      const parts = [];
+      if (Math.abs(carry) >= 1) parts.push(carry > 0 ? `+ ${fmt(carry)} que te sobró antes` : `− ${fmt(-carry)} que gastaste de más antes`);
+      if (Math.abs(adj) >= 1) parts.push(adj > 0 ? `+ ${fmt(adj)} que moviste aquí` : `− ${fmt(-adj)} que moviste a otro`);
+      if (parts.length) v.append(` (${fmt(base)} ${parts.join(" ")})`);
+      cats.append(el);
+    }
+
+    renderMover(isCurrent, start);
+    renderCards();
+    renderTank();
+    renderPagos();
+    renderDeudas();
+    renderBudget();
+    fillAbonoSelect();
+
+    // list
+    $("listTitle").textContent = isCurrent ? "Gastos de esta semana" : "Gastos de esa semana";
+    const list = $("list"); list.innerHTML = "";
+    if (!loaded) { list.innerHTML = '<div class="empty">Cargando tus gastos…</div>'; return; }
+    if (wkAll.length === 0) {
+      list.innerHTML = `<div class="empty">${isCurrent ? "Aún no registras gastos esta semana. Escribe el monto arriba y toca “Agregar gasto”." : "No hay gastos registrados en esa semana."}</div>`;
+      return;
+    }
+    wkAll.sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.creado || 0) - (a.creado || 0));
+    for (const g of wkAll) {
+      const d = parse(g.fecha);
+      const cat = CATS.find((c) => c.id === g.categoria) || CATS[2];
+      const met = METS.find((m) => m.id === g.metodo) || METS[2];
+      const row = document.createElement("div"); row.className = "item";
+      row.innerHTML = `<div class="d"><b class="num">${d.getDate()}</b>${DIA[d.getDay()]}</div>
+        <div class="what"><div></div><div><span class="dot" style="background:${met.color}"></span><span></span></div></div>
+        <div class="m num"></div><button class="del" type="button" aria-label="Borrar gasto">×</button>`;
+      row.querySelector(".what div:first-child").textContent = g.nota || cat.name;
+      row.querySelector(".what div:last-child span:last-child").textContent = `${g.nota ? cat.name + " · " : ""}${met.name}${cat.fuera ? " · no cuenta en tu semana" : ""}`;
+      row.querySelector(".m").textContent = fmt2(g.monto);
+      const btn = row.querySelector(".del");
+      if (pendingDelete === g.id) { btn.className = "del confirm"; btn.textContent = "Borrar"; btn.setAttribute("aria-label", "Confirmar borrar"); }
+      btn.addEventListener("click", () => onDelete(g));
+      list.append(row);
+    }
+  }
+
+  // ---------- Card cycles ----------
+  function cycle(card, ref) {
+    const y = ref.getFullYear(), m = ref.getMonth();
+    const corteThis = clampDay(y, m, card.corte);
+    let end = ref <= corteThis ? corteThis : clampDay(y, m + 1, card.corte);
+    const prevCorte = clampDay(end.getFullYear(), end.getMonth() - 1, card.corte);
+    const start = addDays(prevCorte, 1);
+    const pay = clampDay(end.getFullYear(), end.getMonth() + (card.pago <= card.corte ? 1 : 0), card.pago);
+    return { start, end, pay };
+  }
+  const isPaid = (id) => pagos.some((p) => p.id === id && p.pagado);
+  const paidTo = (id) => pagos.filter((p) => p.deuda === id && p.pagado).reduce((x, p) => x + (+p.monto || 0), 0);
+  function restante(d) { return Math.max(0, (+d.saldoInicial || 0) - paidTo(d.id)); }
+  // Pending scheduled payments of a debt, trimmed so they never add up to more than what is still owed.
+  function pendingAdj(d) {
+    let rem = restante(d);
+    return pagos.filter((p) => p.deuda === d.id && !p.pagado && !p.extra).sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .map((p) => { const adj = Math.max(0, Math.min(+p.monto || 0, rem)); rem -= adj; return { ...p, adj }; });
+  }
+  // Card purchases since the plan started: logged expenses + automatic charges once the jineteo starts.
+  function cardPurchases(id) {
+    const card = cfg.tarjetas[id]; const t = today(); const tIso = iso(t);
+    const out = gastos.filter((g) => g.metodo === id && g.fecha >= cfg.desde && g.fecha <= tIso).map((g) => ({ fecha: g.fecha, monto: g.monto }));
+    const ini = parse(cfg.inicioJineteo);
+    for (let k = 0; k < 120; k++) {
+      const first = new Date(ini.getFullYear(), ini.getMonth() + k, 1);
+      if (first > t) break;
+      for (const f of card.fijos || []) {
+        const dd = clampDay(first.getFullYear(), first.getMonth(), f.dia);
+        if (dd >= ini && dd <= t) out.push({ fecha: iso(dd), monto: f.monto });
+      }
+    }
+    return out;
+  }
+  // Group purchases by statement: key = payment date
+  function cardCycles(id) {
+    const card = cfg.tarjetas[id]; const map = new Map();
+    for (const x of cardPurchases(id)) {
+      const c = cycle(card, parse(x.fecha)); const k = iso(c.pay);
+      if (!map.has(k)) map.set(k, { ...c, monto: 0 });
+      map.get(k).monto += x.monto;
+    }
+    return [...map.values()].sort((a, b) => a.pay - b.pay);
+  }
+  function cardState(id) {
+    const old = deudas.find((d) => d.tarjeta === id);
+    const oldLeft = old ? restante(old) : 0;
+    // Anything paid to this card beyond the old debt (abonos extra) covers new purchases, oldest statement first.
+    let credit = old ? Math.max(0, paidTo(old.id) - (+old.saldoInicial || 0)) : 0;
+    const cycles = [];
+    for (const c of cardCycles(id)) {
+      const doc = pagos.find((p) => p.id === `tarjeta-${id}-${iso(c.pay)}` && p.pagado);
+      if (doc) { credit = Math.max(0, credit - Math.max(0, c.monto - (+doc.monto || 0))); continue; }
+      const use = Math.min(credit, c.monto); credit -= use;
+      cycles.push({ ...c, monto: c.monto - use, cubierto: use });
+    }
+    const nuevas = cycles.reduce((x, c) => x + c.monto, 0);
+    const nextOld = old ? pendingAdj(old).find((p) => p.adj > 0) : null;
+    return { oldLeft, nuevas, total: oldLeft + nuevas, cycles, nextOld, saldoAFavor: credit };
+  }
+  function renderCards() {
+    const t = today(); const wrap = $("cards"); wrap.innerHTML = "";
+    for (const id of ["bbva", "revolut"]) {
+      const card = cfg.tarjetas[id]; const met = METS.find((m) => m.id === id);
+      const { end } = cycle(card, t);
+      const st0 = cardState(id);
+      const tope = card.limite * cfg.tope;
+      const p = card.limite > 0 ? st0.total / card.limite : 0;
+      const st = st0.total > tope ? "over" : (st0.total >= tope * 0.85 ? "warn" : "ok");
+      const el = document.createElement("div"); el.className = "card";
+      el.innerHTML = `<div class="cn"><span class="dot" style="background:${met.color}"></span>${met.name}</div>
+        <div class="amt num"></div>
+        <div class="small num"></div>
+        <div class="meter tall"><i class="${st === "ok" ? "" : st}" style="width:${Math.min(100, p * 100)}%"></i><span class="tope" style="left:calc(${Math.min(100, cfg.tope * 100)}% - 1px)"></span></div>
+        <span class="state ${st}" style="align-self:flex-start"></span>
+        <div class="lines num"></div>`;
+      el.querySelector(".amt").textContent = fmt(st0.total);
+      el.querySelector(".small").textContent = `${Math.round(p * 100)}% de ${fmt(card.limite)} · corte ${short(end)}`;
+      el.querySelector(".state").textContent = st === "over"
+        ? `Alto: arriba de ${fmt(tope)}. No le cargues más`
+        : `Puedes usar ${fmt(tope - st0.total)} sin pasar el ${Math.round(cfg.tope * 100)}%`;
+      const lines = el.querySelector(".lines");
+      const line = (label, val, extra) => { const d = document.createElement("div"); d.append(label, Object.assign(document.createElement("b"), { textContent: fmt(val) }), extra || ""); lines.append(d); };
+      if (st0.oldLeft > 0) line("Deuda vieja: ", st0.oldLeft, st0.nextOld ? ` · próximo pago ${short(parse(st0.nextOld.fecha))}` : "");
+      line("Compras nuevas: ", st0.nuevas, "");
+      if (st0.saldoAFavor > 0) line("Saldo a favor: ", st0.saldoAFavor, "");
+      wrap.append(el);
+    }
+  }
+
+  // ---------- Payments, debts, monthly budget ----------
+  function upcoming() {
+    const items = pagos.filter((p) => !p.auto && (p.pagado || p.extra)).map((p) => ({ ...p }));
+    for (const d of deudas) for (const p of pendingAdj(d)) if (p.adj > 0) items.push({ ...p, montoPlan: p.montoPlan ?? p.monto, monto: p.adj, ajustado: p.adj < p.monto });
+    for (const id of ["bbva", "revolut"]) {
+      const name = METS.find((m) => m.id === id).name;
+      for (const c of cardCycles(id)) {
+        const key = `tarjeta-${id}-${iso(c.pay)}`;
+        const stored = pagos.find((p) => p.id === key && p.pagado);
+        if (stored) { items.push({ ...stored, id: key, auto: true }); continue; }
+      }
+      for (const c of cardState(id).cycles) {
+        if (c.monto <= 0) continue;
+        items.push({ id: `tarjeta-${id}-${iso(c.pay)}`, auto: true, tarjeta: id, fecha: iso(c.pay), monto: c.monto, pagado: false,
+          concepto: `${name}: compras del ${short(c.start)} al ${short(c.end)}`, abierto: today() <= c.end, ajustado: c.cubierto > 0 });
+      }
+    }
+    return items.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }
+  function renderPagos() {
+    const box = $("pagos"); box.innerHTML = "";
+    if (!planLoaded) { box.innerHTML = '<div class="empty">Cargando tu plan de pagos…</div>'; return; }
+    const tIso = iso(today()); const soon = iso(addDays(today(), 7)); const recent = iso(addDays(today(), -7));
+    const all = upcoming();
+    const show = all.filter((p) => !p.pagado || ((p.pagadoEl || p.fecha) >= recent));
+    const pend = show.filter((p) => !p.pagado);
+    const firstPend = pend.slice(0, 6); const shownIds = new Set(firstPend.map((p) => p.id));
+    const list = show.filter((p) => p.pagado || shownIds.has(p.id));
+    const in30 = pend.filter((p) => p.fecha <= iso(addDays(today(), 30))).reduce((x, p) => x + p.monto, 0);
+    $("nextTotal").textContent = pend.length ? `${fmt(in30)} en los próximos 30 días` : "";
+    if (list.length === 0) { box.innerHTML = '<div class="empty">No tienes pagos pendientes.</div>'; return; }
+    for (const p of list) {
+      const d = parse(p.fecha); const late = !p.pagado && p.fecha < tIso;
+      const row = document.createElement("div"); row.className = "pago" + (p.pagado ? " done" : "") + (late ? " late" : "");
+      row.innerHTML = `<div class="when"><b class="num">${d.getDate()}</b>${MES[d.getMonth()]}</div>
+        <div class="c"><div></div><div></div></div>
+        <div class="r"><b class="num"></b><button type="button" class="mark"></button></div>`;
+      row.querySelector(".c div:first-child").textContent = p.concepto;
+      const meta = row.querySelector(".c div:last-child");
+      const dot = p.tarjeta || p.deuda;
+      const color = dot === "bbva" ? "var(--bbva)" : dot === "revolut" ? "var(--rev)" : dot === "coche" ? "#7a5af5" : "var(--accent)";
+      meta.insertAdjacentHTML("beforeend", `<span class="dot" style="background:${color}"></span>`);
+      const tag = document.createElement("span"); tag.className = "tag";
+      if (p.pagado) tag.textContent = "Pagado";
+      else if (late) { tag.className = "tag late"; tag.textContent = "Vencido"; }
+      else if (p.fecha <= soon) { tag.className = "tag soon"; tag.textContent = p.fecha === tIso ? "Hoy" : "Esta semana"; }
+      else tag.textContent = `en ${Math.round((d - today()) / 864e5)} días`;
+      meta.append(tag);
+      if (p.extra) meta.append(" · abono extra");
+      if (p.ajustado && !p.pagado) meta.append(" · ajustado por tus abonos");
+      if (p.abierto && !p.pagado) meta.append(` · sigue sumando hasta el corte`);
+      row.querySelector(".r b").textContent = fmt(p.monto);
+      const btn = row.querySelector(".mark");
+      btn.textContent = p.pagado ? "Deshacer" : "Ya pagué"; if (p.pagado) btn.classList.add("undo");
+      btn.disabled = !db;
+      btn.addEventListener("click", () => togglePago(p));
+      box.append(row);
+    }
+  }
+  async function togglePago(p) {
+    if (!db) return;
+    try {
+      const ref = db.collection("pagos").doc(p.id);
+      if (p.extra) {
+        if (p.pagado) await ref.delete();
+      } else if (p.auto) {
+        if (p.pagado) await ref.delete();
+        else await ref.set({ fecha: p.fecha, concepto: p.concepto, tarjeta: p.tarjeta, monto: Math.round(p.monto * 100) / 100, pagado: true, pagadoEl: iso(today()), auto: true });
+      } else {
+        const plan = p.montoPlan ?? p.monto;
+        await ref.update(p.pagado ? { pagado: false, pagadoEl: null, monto: plan } : { pagado: true, pagadoEl: iso(today()), monto: Math.round(p.monto * 100) / 100, montoPlan: plan });
+      }
+    } catch { $("msg").textContent = "No se pudo actualizar el pago. Intenta de nuevo."; }
+  }
+  function renderDeudas() {
+    const box = $("deudas"); box.innerHTML = "";
+    if (!planLoaded) { box.innerHTML = '<div class="empty">Cargando tus deudas…</div>'; return; }
+    if (deudas.length === 0) { box.innerHTML = '<div class="empty">Sin deudas registradas.</div>'; $("debtTotal").textContent = ""; return; }
+    let tot = 0;
+    for (const d of [...deudas].sort((a, b) => (a.orden || 0) - (b.orden || 0))) {
+      const left = restante(d); tot += left;
+      const ini = +d.saldoInicial || 0; const pct = ini > 0 ? (ini - left) / ini : 1;
+      const next = pendingAdj(d).filter((p) => p.adj > 0).map((p) => ({ ...p, monto: p.adj }));
+      const last = next[next.length - 1];
+      const color = d.id === "bbva" ? "var(--bbva)" : d.id === "revolut" ? "var(--rev)" : d.id === "coche" ? "#7a5af5" : "var(--accent)";
+      const el = document.createElement("div"); el.className = "cat";
+      el.innerHTML = `<div class="top"><div class="name"><span class="dot" style="background:${color}"></span><span></span></div><span class="state ${left === 0 ? "ok" : "warn"}"></span></div>
+        <div class="vals num"></div><div class="meter"><i style="width:${Math.min(100, pct * 100)}%;background:${color}"></i></div>`;
+      el.querySelector(".name span:last-child").textContent = d.nombre;
+      el.querySelector(".state").textContent = left === 0 ? "Liquidada" : (last ? `Terminas ${short(parse(last.fecha))} ${parse(last.fecha).getFullYear() !== today().getFullYear() ? parse(last.fecha).getFullYear() : ""}`.trim() : "Pendiente");
+      const v = el.querySelector(".vals");
+      v.append("Debes ", Object.assign(document.createElement("b"), { textContent: fmt(left) }), ` de ${fmt(ini)}`);
+      if (next[0]) v.append(` · siguiente: ${fmt(next[0].monto)} el ${short(parse(next[0].fecha))}`);
+      box.append(el);
+    }
+    $("debtTotal").textContent = `Total: ${fmt(tot)}`;
+  }
+  function renderBudget() {
+    const items = cfg.mensual || [];
+    const ing = items.filter((i) => i.tipo === "ingreso").reduce((x, i) => x + i.monto, 0);
+    const out = items.filter((i) => i.tipo !== "ingreso");
+    const ahorro = ing - out.reduce((x, i) => x + i.monto, 0);
+    const colors = { necesidad: "var(--rev)", colchon: "#9dbfe9", deuda: "#7a5af5", ahorro: "var(--accent)" };
+    const groups = ["necesidad", "colchon", "deuda"].map((t) => ({ t, v: out.filter((i) => i.tipo === t).reduce((x, i) => x + i.monto, 0) }));
+    groups.push({ t: "ahorro", v: Math.max(0, ahorro) });
+    $("split").innerHTML = groups.filter((g) => g.v > 0).map((g) => `<i style="flex:${g.v};background:${colors[g.t]}"></i>`).join("");
+    const box = $("budget"); box.innerHTML = "";
+    const add = (concepto, monto, cls, color) => {
+      const r = document.createElement("div"); r.className = "bl " + (cls || "");
+      r.innerHTML = `<div class="k">${color ? `<span class="dot" style="background:${color}"></span>` : ""}<span></span></div><b class="num"></b><span class="p num"></span>`;
+      r.querySelector(".k span:last-child").textContent = concepto;
+      r.querySelector("b").textContent = fmt(monto);
+      r.querySelector(".p").textContent = ing > 0 ? Math.round(monto / ing * 100) + "%" : "";
+      box.append(r);
+    };
+    add("Ingreso", ing, "in");
+    for (const i of out) add(i.concepto, i.monto, "", colors[i.tipo]);
+    add("Ahorro (lo que queda)", ahorro, "sav", colors.ahorro);
+    $("budgetNote").textContent = cfg.notaMensual || "";
+  }
+
+  // ---------- Form ----------
+  function buildChoices() {
+    const cc = $("catChoices"); cc.innerHTML = "";
+    CATS.forEach((c, i) => {
+      const id = "cat-" + c.id;
+      cc.insertAdjacentHTML("beforeend", `<input type="radio" name="categoria" id="${id}" value="${c.id}" ${i === 0 ? "checked" : ""}><label for="${id}"><span class="dot" style="background:${c.color}"></span>${c.name}</label>`);
+    });
+    const mc = $("metChoices"); mc.innerHTML = "";
+    METS.forEach((m) => {
+      const id = "met-" + m.id;
+      mc.insertAdjacentHTML("beforeend", `<input type="radio" name="metodo" id="${id}" value="${m.id}"><label for="${id}"><span class="dot" style="background:${m.color}"></span>${m.name}</label>`);
+    });
+    cc.addEventListener("change", suggest);
+    mc.addEventListener("change", () => { userPickedMethod = true; suggest(); });
+    $("fecha").addEventListener("change", () => { userPickedMethod = false; suggest(); });
+  }
+  let userPickedMethod = false;
+  function suggestedMethod(cat, d) {
+    if (cat === "encargo") return null;
+    if (cat !== "gasolina") return "debito";
+    if (iso(d) < (cfg.inicioJineteo || "")) return "debito";
+    const day = d.getDate();
+    return day <= 7 ? "bbva" : (day <= 21 ? "revolut" : "debito");
+  }
+  function suggest() {
+    const cat = document.querySelector('input[name="categoria"]:checked')?.value || "gasolina";
+    $("litrosField").hidden = cat !== "gasolina";
+    const d = $("fecha").value ? parse($("fecha").value) : today();
+    const s = suggestedMethod(cat, d);
+    if (!userPickedMethod && s) { const r = $("met-" + s); if (r) r.checked = true; }
+    const hint = $("hint");
+    if (cat === "gasolina") {
+      const name = METS.find((m) => m.id === s).name;
+      hint.hidden = false; hint.innerHTML = "";
+      if (iso(d) < (cfg.inicioJineteo || "")) {
+        hint.append("Por ahora la gasolina va con ", Object.assign(document.createElement("b"), { textContent: "Débito" }), ": tus tarjetas todavía traen la deuda vieja.");
+      } else {
+        hint.append("Día " + d.getDate() + ": la gasolina va con ", Object.assign(document.createElement("b"), { textContent: name }), s === "debito" ? " (días 22 al fin de mes)." : (s === "bbva" ? " (días 1 al 7)." : " (días 8 al 21)."));
+      }
+    } else if (cat === "encargo") {
+      hint.hidden = false; hint.innerHTML = "";
+      hint.append("No cuenta en tu presupuesto, pero sí en el saldo de la tarjeta. Cuando abones ese efectivo a la tarjeta, regístralo en ", Object.assign(document.createElement("b"), { textContent: "Abono extra" }), " (en Próximos pagos).");
+    } else {
+      hint.hidden = true;
+    }
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    const monto = Math.round(parseFloat($("monto").value) * 100) / 100;
+    if (!(monto > 0)) { $("msg").textContent = "Escribe un monto mayor a $0."; $("monto").focus(); return; }
+    const g = {
+      monto,
+      categoria: document.querySelector('input[name="categoria"]:checked').value,
+      metodo: document.querySelector('input[name="metodo"]:checked')?.value || "debito",
+      fecha: $("fecha").value || iso(today()),
+      nota: $("nota").value.trim().slice(0, 60),
+      creado: Date.now(),
+    };
+    const lit = parseFloat($("litros").value);
+    if (g.categoria === "gasolina" && lit > 0) g.litros = Math.round(lit * 100) / 100;
+    $("add").disabled = true;
+    try {
+      if (db) {
+        const ref = db.collection("gastos").doc();
+        await ref.set(g);
+        if (!gastos.some((x) => x.id === ref.id)) gastos.push({ ...g, id: ref.id });
+      } else {
+        gastos.push({ ...g, id: "local-" + g.creado });
+      }
+      const wasWeek = (() => { const { start, end } = weekRange(); return inRange(g, start, end); })();
+      $("msg").textContent = `Guardado: ${fmt2(monto)}${wasWeek ? "" : " (en otra semana)"}.` + (g.categoria === "encargo" ? " Cuando abones el efectivo a la tarjeta, regístralo en Abono extra." : "");
+      $("monto").value = ""; $("nota").value = ""; $("litros").value = "";
+      userPickedMethod = false; suggest(); render();
+      $("monto").focus();
+    } catch (err) {
+      $("msg").textContent = err && err.code === "quota_exceeded"
+        ? "Ya no cabe otro gasto en el almacenamiento. Borra gastos viejos y vuelve a intentar."
+        : "No se pudo guardar. Revisa tu conexión y vuelve a tocar “Agregar gasto”.";
+    } finally { $("add").disabled = false; }
+  }
+
+  async function onDelete(g) {
+    if (pendingDelete !== g.id) { pendingDelete = g.id; render(); setTimeout(() => { if (pendingDelete === g.id) { pendingDelete = null; render(); } }, 4000); return; }
+    pendingDelete = null;
+    try {
+      if (db && !String(g.id).startsWith("local-")) await db.collection("gastos").doc(g.id).delete();
+      gastos = gastos.filter((x) => x.id !== g.id);
+      render();
+    } catch { $("msg").textContent = "No se pudo borrar. Intenta de nuevo."; render(); }
+  }
+
+  // ---------- Fuel tank estimate ----------
+  const FRACS = [["E", 0], ["1/8", 0.125], ["1/4", 0.25], ["3/8", 0.375], ["1/2", 0.5], ["5/8", 0.625], ["3/4", 0.75], ["7/8", 0.875], ["F", 1]];
+  const tq = () => cfg.tanque || DEFAULT_CFG.tanque;
+  // Liters burned on a given calendar day: commute on work days (Mon..) plus weekly extra km spread evenly.
+  function litersOnDay(d) {
+    const t = tq();
+    if (+t.consumoDia > 0) return +t.consumoDia;
+    const kmL = +t.kmL || 12, dow = d.getDay(), dias = Math.min(7, +t.diasTrabajo || 0);
+    const work = dow === 0 ? dias >= 7 : dow <= dias;
+    return ((work ? +t.kmTrabajo || 0 : 0) + (+t.kmExtraSemana || 0) / 7) / kmL;
+  }
+  function rateLPD() {
+    const t = tq();
+    if (+t.consumoDia > 0) return +t.consumoDia;
+    return ((+t.kmTrabajo || 0) * Math.min(7, +t.diasTrabajo || 0) + (+t.kmExtraSemana || 0)) / 7 / (+t.kmL || 12);
+  }
+  function burned(t0, t1) {
+    let L = 0, c = t0;
+    for (let i = 0; c < t1 && i < 400; i++) {
+      const d = new Date(c); const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      const e = Math.min(next, t1); L += litersOnDay(d) * (e - c) / 864e5; c = e;
+    }
+    return L;
+  }
+  function tankLevel(now) {
+    if (!lectura) return null;
+    const cap = +tq().capacidad || 46, price = +tq().precio || 23.72;
+    const evs = gastos.filter((g) => g.categoria === "gasolina").map((g) => {
+      const c = g.creado ? new Date(g.creado) : null;
+      const t = c && iso(c) === g.fecha ? g.creado : parse(g.fecha).getTime() + 12 * 3600e3;
+      return { t, L: +g.litros > 0 ? +g.litros : g.monto / price };
+    }).filter((e) => e.t > lectura.ts && e.t <= now).sort((a, b) => a.t - b.t);
+    let lv = Math.min(cap, Math.max(0, +lectura.litros || 0)), last = lectura.ts;
+    for (const e of evs) { lv = Math.max(0, lv - burned(last, e.t)); lv = Math.min(cap, lv + e.L); last = e.t; }
+    return Math.max(0, lv - burned(last, now));
+  }
+  function drawGauge(frac) {
+    const cx = 100, cy = 100, r = 80;
+    const pt = (f, rr) => { const a = Math.PI * (1 - f); return [cx + rr * Math.cos(a), cy - rr * Math.sin(a)]; };
+    const arc = (f0, f1) => { const [x0, y0] = pt(f0, r), [x1, y1] = pt(f1, r); return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`; };
+    let h = `<path d="${arc(0, 1)}" class="g-track" fill="none" stroke-width="14" stroke-linecap="round"/>`;
+    if (frac != null) {
+      const col = frac <= 0.15 ? "var(--bad)" : frac <= 0.3 ? "var(--warn)" : "var(--accent)";
+      if (frac > 0.005) h += `<path d="${arc(0, Math.min(1, frac))}" fill="none" stroke="${col}" stroke-width="14" stroke-linecap="round"/>`;
+      const [nx, ny] = pt(Math.min(1, Math.max(0, frac)), r - 22);
+      h += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" class="g-needle" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" class="g-hub"/>`;
+    }
+    for (const [lab, f] of [["E", 0], ["½", 0.5], ["F", 1]]) { const [x, y] = pt(f, r - 26); h += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" class="g-text">${lab}</text>`; }
+    $("gauge").innerHTML = h;
+  }
+  function renderTank() {
+    const now = Date.now(); const lv = tankLevel(now);
+    const cap = +tq().capacidad || 46, rate = rateLPD(), price = +tq().precio || 23.72;
+    const st = $("tankState"), tip = $("tankTip");
+    if (lv == null) {
+      drawGauge(null); st.className = "state"; st.textContent = "";
+      $("tankLiters").textContent = "Sin lectura"; $("tankDays").textContent = "Toca abajo lo que marca tu tablero para empezar.";
+      tip.hidden = true; return;
+    }
+    const frac = lv / cap; drawGauge(frac);
+    // Walk forward day by day with the real weekday pattern until the tank is empty.
+    let rem = lv, c = now, runOut = null;
+    for (let i = 0; i < 90 && rem > 0; i++) {
+      const d = new Date(c); const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      const use = burned(c, next);
+      if (use >= rem) { runOut = new Date(c + (next - c) * (rem / use)); rem = 0; break; }
+      rem -= use; c = next;
+    }
+    const days = runOut ? (runOut - now) / 864e5 : Infinity;
+    const km = lv * (+tq().kmL || 12);
+    st.className = "state " + (frac <= 0.15 ? "over" : frac <= 0.3 ? "warn" : "ok");
+    st.textContent = frac <= 0.15 ? "Carga hoy" : frac <= 0.3 ? "Carga pronto" : "Vas bien";
+    $("tankLiters").textContent = `≈ ${lv.toFixed(1)} L · ${Math.round(frac * 100)}%`;
+    const t = tq();
+    $("tankDays").textContent = (isFinite(days) ? `Unos ${Math.round(km)} km: te alcanza hasta el ${DIA[runOut.getDay()]} ${short(runOut)}. ` : "") +
+      (+t.consumoDia > 0 ? `Consumo fijo de ${(+t.consumoDia).toFixed(1)} L al día.` : `Cada día de trabajo (${(+t.kmTrabajo).toFixed(1)} km) usa ~${((+t.kmTrabajo) / (+t.kmL || 12)).toFixed(1)} L.`);
+    const sunday = addDays(monday(today()), 7); // start of next Monday
+    const need = burned(now, sunday.getTime()) - lv;
+    tip.hidden = false; tip.innerHTML = "";
+    if (need > 0.5) {
+      const room = cap - lv;
+      tip.append("Para llegar al domingo te faltan ~", Object.assign(document.createElement("b"), { textContent: `${Math.ceil(need)} L (≈ ${fmt(Math.ceil(need) * price)})` }), `. Te caben ${Math.floor(room)} L.`);
+    } else {
+      tip.append("Con lo que tienes ", Object.assign(document.createElement("b"), { textContent: "llegas al domingo" }), " sin cargar.");
+    }
+  }
+  function buildFuelChips() {
+    const box = $("fuelChips"); box.innerHTML = "";
+    for (const [lab, f] of FRACS) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = lab;
+      b.setAttribute("aria-label", `Mi tablero marca ${lab}`);
+      b.addEventListener("click", () => saveReading(f, lab));
+      box.append(b);
+    }
+  }
+  async function saveReading(f, lab) {
+    const cap = +tq().capacidad || 46;
+    lectura = { litros: Math.round(f * cap * 100) / 100, ts: Date.now(), marca: lab };
+    renderTank();
+    try { if (db) await db.doc("config/tanque").set(lectura); }
+    catch { $("tankDays").textContent = "No se pudo guardar la lectura. Intenta de nuevo."; }
+  }
+
+  // ---------- Move budget between categories (current week only; never raises the total) ----------
+  function renderMover(isCurrent, start) {
+    $("mover").hidden = !isCurrent;
+    if (!isCurrent) return;
+    const de = $("mvDe"), a = $("mvA"); const curDe = de.value, curA = a.value;
+    de.innerHTML = ""; a.innerHTML = "";
+    for (const c of BCATS) {
+      const av = Math.max(0, availFor(c.id, start));
+      const o1 = document.createElement("option"); o1.value = c.id; o1.textContent = `${c.name} (te quedan ${fmt(av)})`; de.append(o1);
+      const o2 = document.createElement("option"); o2.value = c.id; o2.textContent = c.name; a.append(o2);
+    }
+    de.value = curDe || "gasolina"; a.value = curA || (de.value === "comida" ? "gasolina" : "comida");
+    $("mvBtn").disabled = !db;
+    const list = $("mvList"); list.innerHTML = "";
+    const k = iso(start);
+    for (const m of movs.filter((x) => x.semana === k)) {
+      const n = (id) => (CATS.find((c) => c.id === id) || {}).name || id;
+      const row = document.createElement("div"); row.className = "mvi num";
+      row.innerHTML = `<span></span><button type="button" class="mark undo">Deshacer</button>`;
+      row.querySelector("span").textContent = `${n(m.de)} → ${n(m.a)}: ${fmt(m.monto)}`;
+      row.querySelector("button").addEventListener("click", () => undoMove(m, start));
+      list.append(row);
+    }
+  }
+  async function doMove() {
+    const start = monday(today());
+    const de = $("mvDe").value, a = $("mvA").value;
+    const monto = Math.round(parseFloat($("mvMonto").value) * 100) / 100;
+    const av = availFor(de, start);
+    if (de === a) { $("mvMsg").textContent = "Elige dos presupuestos distintos."; return; }
+    if (!(monto > 0)) { $("mvMsg").textContent = "Escribe cuánto quieres mover."; return; }
+    if (monto > av + 0.001) { $("mvMsg").textContent = `Solo te quedan ${fmt(Math.max(0, av))} en ${CATS.find((c) => c.id === de).name}. No puedes mover más de lo que te sobra.`; return; }
+    if (!db) return;
+    $("mvBtn").disabled = true;
+    try {
+      await db.collection("movimientos").doc(`mov-${Date.now()}`).set({ semana: iso(start), de, a, monto, creado: Date.now() });
+      $("mvMsg").textContent = `Listo: moviste ${fmt(monto)}.`; $("mvMonto").value = "";
+    } catch { $("mvMsg").textContent = "No se pudo mover. Intenta de nuevo."; }
+    finally { $("mvBtn").disabled = false; }
+  }
+  async function undoMove(m, start) {
+    if (availFor(m.a, start) < m.monto - 0.001) { $("mvMsg").textContent = "Ya gastaste parte de ese dinero, así que no se puede deshacer."; return; }
+    try { await db.collection("movimientos").doc(m.id).delete(); $("mvMsg").textContent = "Movimiento deshecho."; }
+    catch { $("mvMsg").textContent = "No se pudo deshacer. Intenta de nuevo."; }
+  }
+
+  // ---------- Abono extra ----------
+  function fillAbonoSelect() {
+    const sel = $("abDeuda"); const cur = sel.value; sel.innerHTML = "";
+    const opts = [...deudas].sort((a, b) => (a.orden || 0) - (b.orden || 0)).map((d) => ({ v: d.id, t: d.tarjeta ? (METS.find((m) => m.id === d.tarjeta) || {}).name || d.nombre : d.nombre }));
+    for (const o of opts) { const op = document.createElement("option"); op.value = o.v; op.textContent = o.t; sel.append(op); }
+    if (cur && opts.some((o) => o.v === cur)) sel.value = cur;
+    $("abAdd").disabled = !db || opts.length === 0;
+  }
+  async function onAbono(e) {
+    e.preventDefault();
+    const monto = Math.round(parseFloat($("abMonto").value) * 100) / 100;
+    if (!(monto > 0)) { $("abMsg").textContent = "Escribe un monto mayor a $0."; return; }
+    const d = deudas.find((x) => x.id === $("abDeuda").value);
+    if (!d || !db) { $("abMsg").textContent = "Elige a qué deuda o tarjeta va el abono."; return; }
+    const fecha = $("abFecha").value || iso(today());
+    const nota = $("abNota").value.trim().slice(0, 60);
+    const name = d.tarjeta ? METS.find((m) => m.id === d.tarjeta).name : d.nombre;
+    $("abAdd").disabled = true;
+    try {
+      await db.collection("pagos").doc(`extra-${d.id}-${Date.now()}`).set({ fecha, concepto: `Abono extra a ${name}${nota ? " · " + nota : ""}`, deuda: d.id, tarjeta: d.tarjeta || null, monto, pagado: true, pagadoEl: fecha, extra: true });
+      $("abMsg").textContent = `Abono de ${fmt2(monto)} a ${name} registrado.`;
+      $("abMonto").value = ""; $("abNota").value = "";
+    } catch { $("abMsg").textContent = "No se pudo registrar el abono. Revisa tu conexión e intenta de nuevo."; }
+    finally { $("abAdd").disabled = false; }
+  }
+
+  // ---------- Settings ----------
+  function renderSettings() {
+    const s = $("settings"); s.innerHTML = "";
+    const fields = [
+      ...BCATS.map((c) => ({ id: "cfg-" + c.id, label: `${c.name} (semana)`, val: budgetFor(c.id, monday(today())) })),
+      { id: "cfg-limb", label: "Límite BBVA", val: cfg.tarjetas.bbva.limite },
+      { id: "cfg-limr", label: "Límite Revolut", val: cfg.tarjetas.revolut.limite },
+      { id: "cfg-tope", label: "Tope sano (%)", val: Math.round(cfg.tope * 100) },
+      { id: "cfg-cap", label: "Tanque del coche (litros)", val: tq().capacidad },
+      { id: "cfg-precio", label: "Precio por litro", val: tq().precio },
+      { id: "cfg-kml", label: "Rendimiento (km por litro)", val: tq().kmL },
+      { id: "cfg-kmt", label: "Km por día de trabajo (ida y vuelta)", val: tq().kmTrabajo },
+      { id: "cfg-dias", label: "Días de trabajo (5 = lun–vie, 6 = lun–sáb)", val: tq().diasTrabajo },
+      { id: "cfg-kmx", label: "Km extra por semana", val: tq().kmExtraSemana },
+    ];
+    for (const f of fields) {
+      s.insertAdjacentHTML("beforeend", `<div class="field"><label class="label" for="${f.id}"></label><input id="${f.id}" type="number" inputmode="decimal" min="0" step="any"></div>`);
+      s.querySelector(`label[for="${f.id}"]`).textContent = f.label;
+      $(f.id).value = f.val;
+    }
+    renderLock();
+    for (const c of BCATS) $("cfg-" + c.id).addEventListener("input", renderLock);
+  }
+  function weeklyGasNeed() {
+    const w = monday(today()).getTime();
+    return burned(w, w + 7 * 864e5) * (+tq().precio || 23.72);
+  }
+  function renderLock() {
+    const box = $("lockInfo"); if (!box) return;
+    const tope = topeFor(monday(today()));
+    if (!isFinite(tope)) { box.textContent = "Sin tope configurado. Restaura tu respaldo para cargar tu plan."; return; }
+    const sum = BCATS.reduce((x, c) => x + Math.max(0, parseFloat($("cfg-" + c.id)?.value) || 0), 0);
+    box.innerHTML = "";
+    box.append("Tope semanal para gasolina, comida y gustos: ", Object.assign(document.createElement("b"), { textContent: fmt(tope) }), `. Vas en ${fmt(sum)}${sum > tope ? " (te pasas por " + fmt(sum - tope) + ")" : ""}. Para subir uno, baja otro.`);
+    const gas = parseFloat($("cfg-gasolina")?.value) || 0, need = weeklyGasNeed();
+    if (gas + 1 < need) box.append(` Ojo: tu coche gasta ~${fmt(need)} a la semana con tus trayectos.`);
+  }
+  async function saveSettings() {
+    const num = (id) => Math.max(0, parseFloat($(id).value) || 0);
+    const next = structuredClone(cfg);
+    BCATS.forEach((c) => next.semanal[c.id] = num("cfg-" + c.id));
+    const wk0 = monday(today());
+    const sum = BCATS.reduce((x, c) => x + next.semanal[c.id], 0), tope = topeFor(wk0);
+    if (sum > tope + 0.001) { $("cfgMsg").textContent = `No se guardó: tus presupuestos suman ${fmt(sum)} y el tope es ${fmt(tope)}. Baja otro presupuesto para compensar.`; return; }
+    if (num("cfg-tope") / 100 > (cfg.topeSanoMax || 0.3) + 1e-9) { $("cfgMsg").textContent = `No se guardó: el tope sano de las tarjetas no puede pasar de ${Math.round((cfg.topeSanoMax || 0.3) * 100)}%.`; return; }
+    next.historial = { ...(cfg.historial || {}) };
+    const wkIso = iso(monday(today()));
+    for (const c of BCATS) {
+      if (Math.abs(next.semanal[c.id] - budgetFor(c.id, wk0)) < 0.001) continue;
+      const prev = histFor(c.id);
+      const hist = prev.length ? [...prev] : [{ desde: cfg.inicioGas || iso(monday(today())), monto: +cfg.semanal[c.id] || 0 }];
+      next.historial[c.id] = hist.filter((h) => h.desde !== wkIso).concat([{ desde: wkIso, monto: next.semanal[c.id] }]);
+    }
+    next.tarjetas.bbva.limite = num("cfg-limb"); next.tarjetas.revolut.limite = num("cfg-limr");
+    next.tope = Math.min((cfg.topeSanoMax || 0.3) * 100, num("cfg-tope")) / 100;
+    next.tanque = { ...tq(), capacidad: num("cfg-cap") || 46, precio: num("cfg-precio") || 23.72, kmL: num("cfg-kml") || 12, kmTrabajo: num("cfg-kmt"), diasTrabajo: Math.min(7, Math.round(num("cfg-dias"))), kmExtraSemana: num("cfg-kmx"), consumoDia: 0 };
+    cfg = next; render();
+    try {
+      if (db) await db.doc("config/presupuesto").set(cfg);
+      $("cfgMsg").textContent = "Presupuesto guardado.";
+    } catch { $("cfgMsg").textContent = "No se pudo guardar el presupuesto. Intenta de nuevo."; }
+  }
+
+
+  // ---------- Local storage adapter (same shape as the document store the page was written for) ----------
+  function makeLocalDb() {
+    const KEY = "msp:v1";
+    let store;
+    try { store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; localStorage.setItem(KEY, JSON.stringify(store)); }
+    catch { return null; }
+    const subs = new Set();
+    const fire = () => subs.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+    const save = () => { localStorage.setItem(KEY, JSON.stringify(store)); fire(); };
+    const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const snapDoc = (k) => ({ id: k.split("/").pop(), exists: k in store, data: () => store[k], metadata: { fromCache: false, hasPendingWrites: false } });
+    const docRef = (k) => ({
+      id: k.split("/").pop(), path: k,
+      async get() { return snapDoc(k); },
+      async set(d) { store[k] = JSON.parse(JSON.stringify(d)); save(); },
+      async update(d) { if (!(k in store)) throw { code: "invalid_argument", message: "no existe" }; store[k] = { ...store[k], ...JSON.parse(JSON.stringify(d)) }; save(); },
+      async delete() { delete store[k]; save(); },
+      onSnapshot(next) { const f = () => next(snapDoc(k)); subs.add(f); queueMicrotask(f); return () => subs.delete(f); },
+    });
+    const coll = (path, order) => ({
+      path,
+      orderBy(f, d) { return coll(path, [f, d || "asc"]); },
+      limit() { return this; },
+      doc(id) { return docRef(path + "/" + (id || rid())); },
+      async add(d) { const r = this.doc(); await r.set(d); return r; },
+      _docs() {
+        const depth = path.split("/").length + 1;
+        const ds = Object.keys(store).filter((k) => k.startsWith(path + "/") && k.split("/").length === depth).sort().map(snapDoc);
+        if (order) { const [f, dir] = order; ds.sort((a, b) => String(a.data()[f] ?? "").localeCompare(String(b.data()[f] ?? "")) * (dir === "desc" ? -1 : 1)); }
+        return ds;
+      },
+      async get() { const docs = this._docs(); return { docs, size: docs.length, empty: !docs.length }; },
+      onSnapshot(next) { const f = () => { const docs = this._docs(); next({ docs, size: docs.length, empty: !docs.length, metadata: {} }); }; subs.add(f); queueMicrotask(f); return () => subs.delete(f); },
+    });
+    window.addEventListener("storage", (e) => { if (e.key === KEY) { try { store = JSON.parse(e.newValue || "{}") || {}; } catch {} fire(); } });
+    return { doc: docRef, collection: (p) => coll(p), exportAll: () => JSON.parse(JSON.stringify(store)), importAll: (docs) => { store = JSON.parse(JSON.stringify(docs)); save(); }, isEmpty: () => Object.keys(store).length === 0 };
+  }
+
+  // ---------- Backup: download / restore ----------
+  let pendingBackup = null;
+  function exportBackup() {
+    if (!db) return;
+    const payload = { app: "mi-semana-en-pesos", version: 1, exportado: new Date().toISOString(), docs: db.exportAll() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `respaldo-mi-semana-${iso(today())}.json`; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    $("bkMsg").textContent = "Respaldo descargado. Guárdalo en Archivos o iCloud; no lo subas a GitHub.";
+  }
+  function onBackupFile(e) {
+    const file = e.target.files && e.target.files[0]; pendingBackup = null; $("bkImport").hidden = true;
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const p = JSON.parse(r.result);
+        if (!p || p.app !== "mi-semana-en-pesos" || typeof p.docs !== "object" || Array.isArray(p.docs)) throw new Error("formato");
+        pendingBackup = p.docs;
+        const n = Object.keys(p.docs).length;
+        $("bkMsg").textContent = `El respaldo tiene ${n} registros${p.exportado ? " (del " + p.exportado.slice(0, 10) + ")" : ""}. Al restaurarlo se reemplaza todo lo que hay ahora en este navegador.`;
+        $("bkImport").hidden = false;
+      } catch { $("bkMsg").textContent = "Ese archivo no es un respaldo de esta página."; }
+    };
+    r.onerror = () => { $("bkMsg").textContent = "No se pudo leer el archivo."; };
+    r.readAsText(file);
+  }
+  function importBackup() {
+    if (!db || !pendingBackup) return;
+    try { db.importAll(pendingBackup); location.reload(); }
+    catch { $("bkMsg").textContent = "No se pudo restaurar: el navegador no dejó guardar los datos."; }
+  }
+
+  // ---------- Boot ----------
+  buildChoices();
+  buildFuelChips();
+  setInterval(() => renderTank(), 5 * 60 * 1000);
+  $("fecha").value = iso(today());
+  suggest();
+  renderSettings();
+  render();
+  $("form").addEventListener("submit", onSubmit);
+  $("abFecha").value = iso(today());
+  $("abonoForm").addEventListener("submit", onAbono);
+  $("prev").addEventListener("click", () => { weekOffset--; pendingDelete = null; render(); });
+  $("next").addEventListener("click", () => { if (weekOffset < 0) { weekOffset++; pendingDelete = null; render(); } });
+  $("saveCfg").addEventListener("click", saveSettings);
+  $("mvBtn").addEventListener("click", doMove);
+
+  const offline = () => {
+    loaded = true; planLoaded = true;
+    const b = $("banner"); b.hidden = false;
+    b.textContent = "Este navegador no permite guardar datos (¿navegación privada?). Puedes registrar gastos, pero se perderán al cerrar la página.";
+    render();
+  };
+  $("bkExport").addEventListener("click", exportBackup);
+  $("bkFile").addEventListener("change", onBackupFile);
+  $("bkImport").addEventListener("click", importBackup);
+  Promise.resolve(makeLocalDb()).then((d) => {
+    if (!d) { offline(); return; }
+    db = d;
+    if (db.isEmpty()) { const b = $("banner"); b.hidden = false; b.textContent = "Primera vez en este navegador: baja a Respaldo y restaura tu archivo de respaldo para cargar tu plan."; }
+    db.doc("config/presupuesto").onSnapshot((snap) => {
+      if (snap.exists) {
+        const data = snap.data();
+        cfg = { ...structuredClone(DEFAULT_CFG), ...data,
+          semanal: { ...DEFAULT_CFG.semanal, ...(data.semanal || {}) },
+          tarjetas: { bbva: { ...DEFAULT_CFG.tarjetas.bbva, ...((data.tarjetas || {}).bbva || {}) }, revolut: { ...DEFAULT_CFG.tarjetas.revolut, ...((data.tarjetas || {}).revolut || {}) } },
+          tanque: { ...DEFAULT_CFG.tanque, ...(data.tanque || {}) } };
+        if (!Array.isArray(cfg.mensual)) cfg.mensual = DEFAULT_CFG.mensual;
+        cfg.topes = Array.isArray(data.topes) ? data.topes : DEFAULT_CFG.topes; cfg.topeSanoMax = Math.min(+data.topeSanoMax || DEFAULT_CFG.topeSanoMax, 0.30);
+        cfg.tope = Math.min(+cfg.tope || 0.3, cfg.topeSanoMax);
+        cfg.historial = { ...DEFAULT_CFG.historial, ...(data.historial || {}) };
+        renderSettings(); render();
+      }
+    }, () => {});
+    db.doc("config/tanque").onSnapshot((snap) => {
+      const d = snap.exists ? snap.data() : null;
+      lectura = d && typeof d.litros === "number" && typeof d.ts === "number" ? d : null;
+      renderTank();
+    }, () => {});
+    let gotD = false, gotP = false;
+    const planReady = () => { if (gotD && gotP) { planLoaded = true; render(); } };
+    db.collection("deudas").onSnapshot((snap) => {
+      deudas = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      gotD = true; planReady();
+    }, () => { gotD = true; planReady(); });
+    db.collection("pagos").orderBy("fecha").limit(500).onSnapshot((snap) => {
+      pagos = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((p) => typeof p.fecha === "string" && typeof p.monto === "number");
+      gotP = true; planReady();
+    }, () => { gotP = true; planReady(); });
+    db.collection("movimientos").onSnapshot((snap) => {
+      movs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((m) => typeof m.monto === "number" && m.semana && m.de && m.a);
+      render();
+    }, () => {});
+    db.collection("gastos").orderBy("fecha", "desc").limit(1000).onSnapshot((snap) => {
+      gastos = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((g) => typeof g.monto === "number" && typeof g.fecha === "string");
+      loaded = true; render();
+    }, () => { offline(); });
+  }).catch(offline);
+})();
+</script>
+</body>
+</html>
