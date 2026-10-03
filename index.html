@@ -166,6 +166,9 @@ form { display: flex; flex-direction: column; gap: 12px; }
 .mv .mark { padding: 8px 16px; }
 .mvi { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.savbig { font-family: var(--display); font-weight: 800; font-size: clamp(32px, 9vw, 42px); line-height: 1.05; letter-spacing: -0.02em; color: var(--accent); }
+.savbig.neg { color: var(--bad); }
+.bl.neg b { color: var(--ink-2); font-weight: 600; }
 .lock { font-size: 13px; color: var(--ink-2); background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
 .lock b { color: var(--ink); }
 .abono { border-top: 1px solid var(--line); padding-top: 12px; }
@@ -280,6 +283,23 @@ details[open] summary::after { content: "–"; }
     <div class="list" id="list"><div class="empty">Cargando tus gastos…</div></div>
   </section>
 
+  <section class="panel" id="savPanel">
+    <div class="ph"><h2>Mi ahorro</h2><span class="note" id="savWhen"></span></div>
+    <div id="savBody">
+      <div class="label" id="savLabel">Ahorro libre</div>
+      <div class="savbig num" id="savLibre">$0</div>
+      <div class="budget" id="savRows"></div>
+      <div class="meter" id="savMeter"><i style="width:0%"></i></div>
+      <div class="note num" id="savMeta"></div>
+    </div>
+    <div class="empty" id="savEmpty">Escribe cuánto dinero tienes hoy y te digo cuánto es ahorro libre.</div>
+    <div class="field"><label class="label" for="savSaldo">Cuánto tengo hoy en total (débito + ahorro + efectivo)</label>
+      <div class="mv"><input id="savSaldo" type="number" inputmode="decimal" min="0" step="any" placeholder="$"><button id="savBtn" type="button" class="mark">Guardar</button></div>
+    </div>
+    <div class="msg" id="savMsg" role="status"></div>
+    <div class="note">Entre una actualización y otra es un estimado: resta lo que registras con débito o efectivo y los pagos que marcas, y suma tus quincenas. Corrígelo con tu saldo real cuando revises tu banco.</div>
+  </section>
+
   <section class="panel">
     <div class="ph"><h2>Mis deudas</h2><span class="note num" id="debtTotal"></span></div>
     <div class="cats" id="deudas"><div class="empty">Cargando tus deudas…</div></div>
@@ -348,6 +368,8 @@ details[open] summary::after { content: "–"; }
     topes: [],
     historial: {},
     topeSanoMax: 0.30,
+    ingreso: { monto: 0, dias: [15, 30] },
+    metaMeses: 3,
     mensual: [],
     notaMensual: "",
   };
@@ -358,6 +380,7 @@ details[open] summary::after { content: "–"; }
   let pagos = [];        // {id, fecha, concepto, deuda?, tarjeta?, monto, pagado, pagadoEl?, auto?}
   let planLoaded = false;
   let movs = [];         // {id, semana, de, a, monto, creado}: budget moved between categories
+  let ahorro = null;     // {saldo, ts}: last time the user typed their real total balance
   let lectura = null;    // {litros, ts}: last dashboard reading
   let weekOffset = 0;
   let db = null;
@@ -501,6 +524,7 @@ details[open] summary::after { content: "–"; }
     renderDeudas();
     renderBudget();
     renderImprevistos();
+    renderAhorro();
     fillAbonoSelect();
 
     // list
@@ -687,10 +711,10 @@ details[open] summary::after { content: "–"; }
         if (p.pagado) await ref.delete();
       } else if (p.auto) {
         if (p.pagado) await ref.delete();
-        else await ref.set({ fecha: p.fecha, concepto: p.concepto, tarjeta: p.tarjeta, monto: Math.round(p.monto * 100) / 100, pagado: true, pagadoEl: iso(today()), auto: true });
+        else await ref.set({ fecha: p.fecha, concepto: p.concepto, tarjeta: p.tarjeta, monto: Math.round(p.monto * 100) / 100, pagado: true, pagadoEl: iso(today()), pagadoTs: Date.now(), auto: true });
       } else {
         const plan = p.montoPlan ?? p.monto;
-        await ref.update(p.pagado ? { pagado: false, pagadoEl: null, monto: plan } : { pagado: true, pagadoEl: iso(today()), monto: Math.round(p.monto * 100) / 100, montoPlan: plan });
+        await ref.update(p.pagado ? { pagado: false, pagadoEl: null, pagadoTs: null, monto: plan } : { pagado: true, pagadoEl: iso(today()), pagadoTs: Date.now(), monto: Math.round(p.monto * 100) / 100, montoPlan: plan });
       }
     } catch { $("msg").textContent = "No se pudo actualizar el pago. Intenta de nuevo."; }
   }
@@ -717,6 +741,73 @@ details[open] summary::after { content: "–"; }
     }
     $("debtTotal").textContent = `Total: ${fmt(tot)}`;
   }
+  // ---------- Savings: real balance minus what is already committed ----------
+  function paydaysIn(fromIsoExcl, toIsoIncl) {
+    const out = []; const dias = (cfg.ingreso && cfg.ingreso.dias) || [15, 30];
+    const a = parse(fromIsoExcl), b = parse(toIsoIncl);
+    for (let i = 0; i < 240; i++) {
+      const first = new Date(a.getFullYear(), a.getMonth() + i, 1);
+      if (first > b) break;
+      for (const d of dias) { const x = iso(clampDay(first.getFullYear(), first.getMonth(), d)); if (x > fromIsoExcl && x <= toIsoIncl) out.push(x); }
+    }
+    return out.sort();
+  }
+  function nextPayday(t) { return parse(paydaysIn(iso(t), iso(addDays(t, 62)))[0] || iso(addDays(t, 15))); }
+  function saldoEstimado() {
+    const fL = iso(new Date(ahorro.ts)), tIso = iso(today());
+    let v = +ahorro.saldo || 0;
+    v -= gastos.filter((g) => (g.metodo === "debito" || g.metodo === "efectivo") && (g.creado || 0) > ahorro.ts && g.fecha >= fL).reduce((x, g) => x + g.monto, 0);
+    v -= pagos.filter((p) => p.pagado && ((p.pagadoTs || 0) > ahorro.ts || (!p.pagadoTs && (p.pagadoEl || "") > fL))).reduce((x, p) => x + (+p.monto || 0), 0);
+    v += paydaysIn(fL, tIso).length * (+(cfg.ingreso || {}).monto || 0);
+    return v;
+  }
+  function comprometido() {
+    const t = today(), P = nextPayday(t), start = monday(t), end = addDays(start, 6);
+    const days = (a, b) => Math.round((b - a) / 864e5);
+    let porGastar = BCATS.reduce((x, c) => x + Math.max(0, availFor(c.id, start)), 0);
+    if (P <= end) porGastar *= days(t, P) / (days(t, end) + 1);
+    else for (let w = addDays(start, 7), i = 0; w < P && i < 10; w = addDays(w, 7), i++)
+      porGastar += BCATS.reduce((x, c) => x + budgetFor(c.id, w), 0) * Math.min(7, days(w, P)) / 7;
+    const pIso = iso(P);
+    const pagosAntes = upcoming().filter((p) => !p.pagado && !p.auto && p.fecha < pIso).reduce((x, p) => x + p.monto, 0);
+    const tarjetas = ["bbva", "revolut"].reduce((x, id) => x + cardState(id).nuevas, 0);
+    return { P, porGastar, pagosAntes, tarjetas };
+  }
+  function renderAhorro() {
+    const has = !!ahorro;
+    $("savBody").hidden = !has; $("savEmpty").hidden = has; $("savBtn").disabled = !db;
+    if (!has) { $("savWhen").textContent = ""; return; }
+    const saldo = saldoEstimado(), c = comprometido();
+    const libre = saldo - c.porGastar - c.pagosAntes - c.tarjetas;
+    const dAgo = Math.round((today() - parse(iso(new Date(ahorro.ts)))) / 864e5);
+    $("savWhen").textContent = dAgo === 0 ? "Saldo actualizado hoy" : `Saldo actualizado hace ${dAgo} ${dAgo === 1 ? "día" : "días"}`;
+    $("savLabel").textContent = libre < 0 ? "Te falta para cubrir lo comprometido" : "Ahorro libre";
+    $("savLibre").textContent = fmt(Math.abs(libre)); $("savLibre").classList.toggle("neg", libre < 0);
+    const rows = $("savRows"); rows.innerHTML = "";
+    const add = (k, v, cls) => { const r = document.createElement("div"); r.className = "bl " + (cls || ""); r.innerHTML = `<div class="k"><span></span></div><b class="num"></b><span></span>`; r.querySelector(".k span").textContent = k; r.querySelector("b").textContent = v; rows.append(r); };
+    const pay = `${c.P.getDate()} ${MES[c.P.getMonth()]}`;
+    add(dAgo === 0 ? "Tienes en total" : "Tienes en total (estimado)", fmt(saldo), "in");
+    add(`Por gastar hasta tu quincena del ${pay}`, "−" + fmt(c.porGastar), "neg");
+    add(`Pagos antes del ${pay}`, "−" + fmt(c.pagosAntes), "neg");
+    add("Apartado para tarjetas", "−" + fmt(c.tarjetas), "neg");
+    const meta = (+cfg.metaMeses || 3) * (cfg.mensual || []).filter((i) => i.tipo === "necesidad").reduce((x, i) => x + i.monto, 0);
+    const m = $("savMeter"), mt = $("savMeta");
+    m.hidden = !(meta > 0); mt.hidden = !(meta > 0);
+    if (meta > 0) {
+      const pct = Math.max(0, Math.min(1, libre / meta));
+      m.querySelector("i").style.width = (pct * 100) + "%";
+      mt.textContent = `Fondo de emergencia: ${Math.round(pct * 100)}% de tu meta de ${fmt(meta)} (${cfg.metaMeses || 3} meses de gastos esenciales).`;
+    }
+  }
+  async function saveSaldo() {
+    const v = parseFloat($("savSaldo").value);
+    if (!(v >= 0)) { $("savMsg").textContent = "Escribe cuánto dinero tienes en total."; return; }
+    ahorro = { saldo: Math.round(v * 100) / 100, ts: Date.now() };
+    renderAhorro(); $("savSaldo").value = "";
+    try { if (db) await db.doc("config/ahorro").set(ahorro); $("savMsg").textContent = "Saldo actualizado."; }
+    catch { $("savMsg").textContent = "No se pudo guardar el saldo. Intenta de nuevo."; }
+  }
+
   function renderImprevistos() {
     const imp = gastos.filter((g) => g.categoria === "imprevisto").sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.creado || 0) - (a.creado || 0));
     $("impPanel").hidden = imp.length === 0;
@@ -1025,7 +1116,7 @@ details[open] summary::after { content: "–"; }
     const name = d.tarjeta ? METS.find((m) => m.id === d.tarjeta).name : d.nombre;
     $("abAdd").disabled = true;
     try {
-      await db.collection("pagos").doc(`extra-${d.id}-${Date.now()}`).set({ fecha, concepto: `Abono extra a ${name}${nota ? " · " + nota : ""}`, deuda: d.id, tarjeta: d.tarjeta || null, monto, pagado: true, pagadoEl: fecha, extra: true });
+      await db.collection("pagos").doc(`extra-${d.id}-${Date.now()}`).set({ fecha, concepto: `Abono extra a ${name}${nota ? " · " + nota : ""}`, deuda: d.id, tarjeta: d.tarjeta || null, monto, pagado: true, pagadoEl: fecha, pagadoTs: Date.now(), extra: true });
       $("abMsg").textContent = `Abono de ${fmt2(monto)} a ${name} registrado.`;
       $("abMonto").value = ""; $("abNota").value = "";
     } catch { $("abMsg").textContent = "No se pudo registrar el abono. Revisa tu conexión e intenta de nuevo."; }
@@ -1040,6 +1131,7 @@ details[open] summary::after { content: "–"; }
       { id: "cfg-limb", label: "Límite BBVA", val: cfg.tarjetas.bbva.limite },
       { id: "cfg-limr", label: "Límite Revolut", val: cfg.tarjetas.revolut.limite },
       { id: "cfg-tope", label: "Tope sano (%)", val: Math.round(cfg.tope * 100) },
+      { id: "cfg-ing", label: "Ingreso por quincena (días 15 y 30)", val: (cfg.ingreso || {}).monto || 0 },
       { id: "cfg-cap", label: "Tanque del coche (litros)", val: tq().capacidad },
       { id: "cfg-precio", label: "Precio por litro", val: tq().precio },
       { id: "cfg-kml", label: "Rendimiento (km por litro)", val: tq().kmL },
@@ -1087,6 +1179,7 @@ details[open] summary::after { content: "–"; }
     }
     next.tarjetas.bbva.limite = num("cfg-limb"); next.tarjetas.revolut.limite = num("cfg-limr");
     next.tope = Math.min((cfg.topeSanoMax || 0.3) * 100, num("cfg-tope")) / 100;
+    next.ingreso = { dias: [15, 30], ...(cfg.ingreso || {}), monto: num("cfg-ing") };
     next.tanque = { ...tq(), capacidad: num("cfg-cap") || 46, precio: num("cfg-precio") || 23.72, kmL: num("cfg-kml") || 12, kmTrabajo: num("cfg-kmt"), diasTrabajo: Math.min(7, Math.round(num("cfg-dias"))), kmExtraSemana: num("cfg-kmx"), consumoDia: 0 };
     cfg = next; render();
     try {
@@ -1183,6 +1276,7 @@ details[open] summary::after { content: "–"; }
   $("next").addEventListener("click", () => { if (weekOffset < 0) { weekOffset++; pendingDelete = null; render(); } });
   $("saveCfg").addEventListener("click", saveSettings);
   $("mvBtn").addEventListener("click", doMove);
+  $("savBtn").addEventListener("click", saveSaldo);
 
   const offline = () => {
     loaded = true; planLoaded = true;
@@ -1210,6 +1304,11 @@ details[open] summary::after { content: "–"; }
         cfg.historial = { ...DEFAULT_CFG.historial, ...(data.historial || {}) };
         renderSettings(); render();
       }
+    }, () => {});
+    db.doc("config/ahorro").onSnapshot((snap) => {
+      const d = snap.exists ? snap.data() : null;
+      ahorro = d && typeof d.saldo === "number" && typeof d.ts === "number" ? d : null;
+      renderAhorro();
     }, () => {});
     db.doc("config/tanque").onSnapshot((snap) => {
       const d = snap.exists ? snap.data() : null;
