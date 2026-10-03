@@ -285,6 +285,12 @@ details[open] summary::after { content: "–"; }
     <div class="cats" id="deudas"><div class="empty">Cargando tus deudas…</div></div>
   </section>
 
+  <section class="panel" id="impPanel" hidden>
+    <div class="ph"><h2>Imprevistos pagados con tu ahorro</h2><span class="note num" id="impTotal"></span></div>
+    <div class="list" id="impList"></div>
+    <div class="note">Esto salió de tu fondo de emergencia. Cada peso que sacas retrasa tu meta, así que repónlo cuando te sobre algo.</div>
+  </section>
+
   <section class="panel">
     <h2>Presupuesto mensual</h2>
     <div class="split" id="split"></div>
@@ -320,6 +326,7 @@ details[open] summary::after { content: "–"; }
     { id: "comida", name: "Comida y salidas", color: "var(--accent)" },
     { id: "otros", name: "Otros / gustos", color: "var(--warn)" },
     { id: "encargo", name: "Encargo (no es mío)", color: "#8a6fd1", fuera: true },
+    { id: "imprevisto", name: "Imprevisto (de mi ahorro)", color: "var(--bad)", fuera: true },
   ];
   const METS = [
     { id: "bbva", name: "BBVA", color: "var(--bbva)" },
@@ -493,6 +500,7 @@ details[open] summary::after { content: "–"; }
     renderPagos();
     renderDeudas();
     renderBudget();
+    renderImprevistos();
     fillAbonoSelect();
 
     // list
@@ -709,6 +717,27 @@ details[open] summary::after { content: "–"; }
     }
     $("debtTotal").textContent = `Total: ${fmt(tot)}`;
   }
+  function renderImprevistos() {
+    const imp = gastos.filter((g) => g.categoria === "imprevisto").sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.creado || 0) - (a.creado || 0));
+    $("impPanel").hidden = imp.length === 0;
+    if (!imp.length) return;
+    const tot = imp.reduce((x, g) => x + g.monto, 0);
+    const mes = iso(today()).slice(0, 7);
+    const totMes = imp.filter((g) => g.fecha.slice(0, 7) === mes).reduce((x, g) => x + g.monto, 0);
+    $("impTotal").textContent = `Total: ${fmt(tot)}${totMes && totMes !== tot ? " · este mes " + fmt(totMes) : ""}`;
+    const list = $("impList"); list.innerHTML = "";
+    for (const g of imp.slice(0, 12)) {
+      const d = parse(g.fecha); const met = METS.find((m) => m.id === g.metodo) || METS[2];
+      const row = document.createElement("div"); row.className = "item";
+      row.innerHTML = `<div class="d"><b class="num">${d.getDate()}</b>${MES[d.getMonth()]}</div>
+        <div class="what"><div></div><div><span class="dot" style="background:${met.color}"></span><span></span></div></div>
+        <div class="m num"></div><span></span>`;
+      row.querySelector(".what div:first-child").textContent = g.nota || "Imprevisto";
+      row.querySelector(".what div:last-child span:last-child").textContent = met.name;
+      row.querySelector(".m").textContent = fmt2(g.monto);
+      list.append(row);
+    }
+  }
   function renderBudget() {
     const items = cfg.mensual || [];
     const ing = items.filter((i) => i.tipo === "ingreso").reduce((x, i) => x + i.monto, 0);
@@ -751,7 +780,7 @@ details[open] summary::after { content: "–"; }
   }
   let userPickedMethod = false;
   function suggestedMethod(cat, d) {
-    if (cat === "encargo") return null;
+    if (cat === "encargo" || cat === "imprevisto") return null;
     if (cat !== "gasolina") return "debito";
     if (iso(d) < (cfg.inicioJineteo || "")) return "debito";
     const day = d.getDate();
@@ -772,6 +801,9 @@ details[open] summary::after { content: "–"; }
       } else {
         hint.append("Día " + d.getDate() + ": la gasolina va con ", Object.assign(document.createElement("b"), { textContent: name }), s === "debito" ? " (días 22 al fin de mes)." : (s === "bbva" ? " (días 1 al 7)." : " (días 8 al 21)."));
       }
+    } else if (cat === "imprevisto") {
+      hint.hidden = false; hint.innerHTML = "";
+      hint.append("Sale de tu ", Object.assign(document.createElement("b"), { textContent: "fondo de emergencia" }), ", no de tu semana. Úsalo solo para urgencias reales: coche, salud o trabajo. Si pagas con tarjeta, aparta ese dinero de tu ahorro para la fecha de pago.");
     } else if (cat === "encargo") {
       hint.hidden = false; hint.innerHTML = "";
       hint.append("No cuenta en tu presupuesto, pero sí en el saldo de la tarjeta. Cuando abones ese efectivo a la tarjeta, regístralo en ", Object.assign(document.createElement("b"), { textContent: "Abono extra" }), " (en Próximos pagos).");
